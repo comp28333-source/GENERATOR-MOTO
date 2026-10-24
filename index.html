@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="RU">
+<head>
+    <meta charset="UTF-8">
+    <meta name="VIEWPORT" content="WIDTH=DEVICE-WIDTH, INITIAL-SCALE=1.0">
+    <title>КАЛЬКУЛЯТОР МОТОЧАСОВ ГЕНЕРАТОРА</title>
+    <!-- TAILWIND CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FONT AWESOME ICONS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* BASE UPPERCASE FORCING */
+        * {
+            text-transform: uppercase !important;
+        }
+
+        /* CUSTOM THEMES & VARIABLE CONFIGURATION */
+        :root {
+            --BG-MAIN: #F3F4F6;
+            --PANEL-BG: #FFFFFF;
+            --TEXT-PRIMARY: #111827;
+            --TEXT-MUTED: #6B7280;
+            --BORDER-COLOR: #E5E7EB;
+            --INPUT-BG: #F9FAFB;
+            --ACCENT-COLOR: #2563EB;
+            --ACCENT-HOVER: #1D4ED8;
+            --ACCENT-TEXT: #FFFFFF;
+            --BORDER-RADIUS: 12px;
+            --FONT-SIZE: 16px;
+        }
+
+        /* DARK THEME */
+        [data-theme="DARK"] {
+            --BG-MAIN: #0F172A;
+            --PANEL-BG: #1E293B;
+            --TEXT-PRIMARY: #F8FAFC;
+            --TEXT-MUTED: #94A3B8;
+            --BORDER-COLOR: #334155;
+            --INPUT-BG: #0F172A;
+            --ACCENT-COLOR: #3B82F6;
+            --ACCENT-HOVER: #60A5FA;
+            --ACCENT-TEXT: #FFFFFF;
+        }
+
+        /* HIGH CONTRAST THEME */
+        [data-theme="CONTRAST"] {
+            --BG-MAIN: #000000;
+            --PANEL-BG: #000000;
+            --TEXT-PRIMARY: #FFFF00;
+            --TEXT-MUTED: #FFFFFF;
+            --BORDER-COLOR: #FFFF00;
+            --INPUT-BG: #000000;
+            --ACCENT-COLOR: #FFFF00;
+            --ACCENT-HOVER: #000000;
+            --ACCENT-TEXT: #000000;
+        }
+
+        /* BACKGROUND PATTERNS */
+        body.bg-grid {
+            background-image: radial-gradient(var(--BORDER-COLOR) 1px, transparent 1px);
+            background-size: 24px 24px;
+        }
+        body.bg-gradient {
+            background-image: linear-gradient(135deg, var(--BG-MAIN) 0%, var(--PANEL-BG) 100%);
+        }
+
+        body {
+            background-color: var(--BG-MAIN);
+            color: var(--TEXT-PRIMARY);
+            font-size: var(--FONT-SIZE);
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            transition: all 0.3s ease;
+        }
+
+        .custom-panel {
+            background-color: var(--PANEL-BG);
+            border: 1px solid var(--BORDER-COLOR);
+            border-radius: var(--BORDER-RADIUS);
+        }
+
+        .custom-input {
+            background-color: var(--INPUT-BG);
+            color: var(--TEXT-PRIMARY);
+            border: 2px solid var(--BORDER-COLOR);
+            border-radius: var(--BORDER-RADIUS);
+            transition: border-color 0.2s;
+        }
+
+        .custom-input:focus {
+            outline: none;
+            border-color: var(--ACCENT-COLOR);
+        }
+
+        .custom-btn-primary {
+            background-color: var(--ACCENT-COLOR);
+            color: var(--ACCENT-TEXT);
+            border-radius: var(--BORDER-RADIUS);
+            transition: background-color 0.2s, transform 0.1s;
+        }
+
+        .custom-btn-primary:active {
+            transform: scale(0.98);
+        }
+
+        .custom-btn-secondary {
+            border: 2px solid var(--BORDER-COLOR);
+            color: var(--TEXT-PRIMARY);
+            border-radius: var(--BORDER-RADIUS);
+        }
+
+        .theme-swatch {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: transform 0.2s;
+        }
+
+        .theme-swatch:hover {
+            transform: scale(1.15);
+        }
+
+        .theme-swatch.active {
+            border-color: var(--TEXT-PRIMARY);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between p-4 sm:p-6 bg-grid">
+
+    <!-- TOP HEADER -->
+    <header class="w-full max-w-2xl mx-auto flex justify-between items-center mb-6">
+        <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 flex items-center justify-center custom-btn-primary font-bold text-xl">
+                <i class="fa-solid fa-bolt"></i>
+            </div>
+            <div>
+                <h1 class="text-xl sm:text-2xl font-black tracking-wider">МОТОЧАСЫ ГЕНЕРАТОРА</h1>
+                <p class="text-xs tracking-widest opacity-75" style="color: var(--TEXT-MUTED);">КАЛЬКУЛЯТОР НАРАБОТКИ</p>
+            </div>
+        </div>
+
+        <!-- SETTINGS TOGGLE BUTTON -->
+        <button id="openSettingsBtn" onclick="toggleSettingsModal(true)" class="custom-btn-secondary p-3 flex items-center justify-center hover:opacity-80 transition">
+            <i class="fa-solid fa-sliders text-lg"></i>
+        </button>
+    </header>
+
+    <!-- MAIN CALCULATOR CONTAINER -->
+    <main class="w-full max-w-2xl mx-auto custom-panel p-6 sm:p-8 shadow-2xl relative mb-8">
+        
+        <!-- INPUT FORM -->
+        <div class="space-y-6">
+            
+            <!-- DAYS INPUT -->
+            <div>
+                <label for="inputDays" class="block text-xs font-bold mb-2 tracking-wider opacity-80">
+                    <i class="fa-regular fa-calendar-days mr-2"></i>КОЛИЧЕСТВО ДНЕЙ РАБОТЫ
+                </label>
+                <input type="number" id="inputDays" min="0" placeholder="НАПР. 10" class="custom-input w-full p-4 font-bold text-lg">
+            </div>
+
+            <!-- TIME PER DAY INPUTS -->
+            <div>
+                <label class="block text-xs font-bold mb-2 tracking-wider opacity-80">
+                    <i class="fa-regular fa-clock mr-2"></i>ВРЕМЯ РАБОТЫ В ДЕНЬ
+                </label>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <div class="relative">
+                            <input type="number" id="inputHours" min="0" max="24" placeholder="ЧАСОВ (0-24)" class="custom-input w-full p-4 font-bold text-lg pr-16">
+                            <span class="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold opacity-60">ЧАС</span>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="relative">
+                            <input type="number" id="inputMinutes" min="0" max="59" placeholder="МИНУТ (0-59)" class="custom-input w-full p-4 font-bold text-lg pr-16">
+                            <span class="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold opacity-60">МИН</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ACTION BUTTONS -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+                <button onclick="calculateHours()" class="custom-btn-primary sm:col-span-2 py-4 px-6 font-black text-center tracking-wider text-base shadow-lg hover:brightness-110 flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-calculator"></i>РАССЧИТАТЬ МОТОЧАСЫ
+                </button>
+                <button onclick="resetForm()" class="custom-btn-secondary py-4 px-4 font-bold text-center tracking-wider hover:opacity-80 flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-rotate-left"></i>СБРОС
+                </button>
+            </div>
+        </div>
+
+        <!-- ERROR MESSAGE CONTAINER -->
+        <div id="errorMessage" class="hidden mt-6 p-4 rounded-lg bg-red-500/20 border border-red-500 text-red-500 text-xs font-bold text-center">
+            ПРАВИЛЬНО ЗАПОЛНИТЕ ВСЕ ПОЛЯ ВВОДА!
+        </div>
+
+        <!-- RESULTS DISPLAY SECTION -->
+        <div id="resultsSection" class="hidden mt-8 pt-8 border-t border-dashed" style="border-color: var(--BORDER-COLOR);">
+            <h2 class="text-sm font-black mb-4 tracking-widest flex items-center gap-2" style="color: var(--TEXT-MUTED);">
+                <i class="fa-solid fa-chart-pie"></i>РЕЗУЛЬТАТЫ РАСЧЕТА
+            </h2>
+
+            <div class="grid grid-cols-1 gap-4">
+                
+                <!-- CARD 1: TOTAL HOURS & MINUTES -->
+                <div class="custom-panel p-5 border-l-4" style="border-left-color: var(--ACCENT-COLOR);">
+                    <div class="text-xs font-bold opacity-70 mb-1">ОБЩЕЕ ВРЕМЯ НАРАБОТКИ</div>
+                    <div id="resTotalHM" class="text-2xl sm:text-3xl font-black tracking-tight">
+                        0 Ч 0 МИН
+                    </div>
+                </div>
+
+                <!-- CARD 2: DECIMAL HOURS -->
+                <div class="custom-panel p-5 border-l-4" style="border-left-color: var(--ACCENT-COLOR);">
+                    <div class="text-xs font-bold opacity-70 mb-1">В ДЕСЯТИЧНОМ ВИДЕ (МОТОЧАСЫ)</div>
+                    <div class="flex items-baseline gap-2">
+                        <span id="resDecimal" class="text-2xl sm:text-3xl font-black tracking-tight">0.00</span>
+                        <span class="text-xs font-extrabold opacity-80">МОТОЧАСОВ</span>
+                    </div>
+                    <p class="text-[10px] mt-2 opacity-60">УДОБНО ДЛЯ УЧЕТА РАСХОДА ТОПЛИВА И ИНТЕРВАЛОВ ТО</p>
+                </div>
+
+                <!-- CARD 3: CONTINUOUS EQUIVALENT -->
+                <div class="custom-panel p-5 border-l-4" style="border-left-color: var(--ACCENT-COLOR);">
+                    <div class="text-xs font-bold opacity-70 mb-1">ЭКВИВАЛЕНТ НЕПРЕРЫВНОЙ РАБОТЫ</div>
+                    <div id="resContinuous" class="text-lg sm:text-xl font-black">
+                        0 ДНЕЙ 0 ЧАСОВ 0 МИНУТ
+                    </div>
+                    <p class="text-[10px] mt-2 opacity-60">ЕСЛИ БЫ ГЕНЕРАТОР РАБОТАЛ БЕЗ ОСТАНОВКИ 24/7</p>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="w-full max-w-2xl mx-auto text-center text-xs opacity-60 py-4">
+        ОТСЛЕЖИВАНИЕ РЕСУРСА ГЕНЕРАТОРА • <span id="currentYear"></span>
+    </footer>
+
+    <!-- SETTINGS MODAL DIALOG -->
+    <div id="settingsModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden opacity-0 transition-opacity duration-200">
+        <div class="custom-panel w-full max-w-md p-6 shadow-2xl relative transform scale-95 transition-transform duration-200" id="modalCard">
+            
+            <!-- MODAL HEADER -->
+            <div class="flex justify-between items-center mb-6 pb-3 border-b" style="border-color: var(--BORDER-COLOR);">
+                <h3 class="font-black text-lg flex items-center gap-2">
+                    <i class="fa-solid fa-palette"></i>НАСТРОЙКИ ВНЕШНЕГО ВИДА
+                </h3>
+                <button onclick="toggleSettingsModal(false)" class="p-2 opacity-70 hover:opacity-100">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+
+            <!-- MODAL CONTROLS -->
+            <div class="space-y-5">
+                
+                <!-- 1. COLOR THEME -->
+                <div>
+                    <label class="block text-xs font-bold mb-2 opacity-80">ТЕМА ОФОРМЛЕНИЯ</label>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button onclick="setTheme('LIGHT')" id="btnThemeLight" class="custom-btn-secondary p-3 text-xs font-bold flex flex-col items-center gap-1">
+                            <i class="fa-solid fa-sun text-base"></i>СВЕТЛАЯ
+                        </button>
+                        <button onclick="setTheme('DARK')" id="btnThemeDark" class="custom-btn-secondary p-3 text-xs font-bold flex flex-col items-center gap-1">
+                            <i class="fa-solid fa-moon text-base"></i>ТЕМНАЯ
+                        </button>
+                        <button onclick="setTheme('CONTRAST')" id="btnThemeContrast" class="custom-btn-secondary p-3 text-xs font-bold flex flex-col items-center gap-1">
+                            <i class="fa-solid fa-circle-half-stroke text-base"></i>КОНТРАСТ
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 2. ACCENT COLOR -->
+                <div>
+                    <label class="block text-xs font-bold mb-2 opacity-80">АКЦЕНТНЫЙ ЦВЕТ</label>
+                    <div class="flex items-center gap-3">
+                        <div onclick="setAccent('#2563EB')" class="theme-swatch active" style="background-color: #2563EB;" data-accent="#2563EB"></div>
+                        <div onclick="setAccent('#10B981')" class="theme-swatch" style="background-color: #10B981;" data-accent="#10B981"></div>
+                        <div onclick="setAccent('#D97706')" class="theme-swatch" style="background-color: #D97706;" data-accent="#D97706"></div>
+                        <div onclick="setAccent('#DC2626')" class="theme-swatch" style="background-color: #DC2626;" data-accent="#DC2626"></div>
+                        <div onclick="setAccent('#8B5CF6')" class="theme-swatch" style="background-color: #8B5CF6;" data-accent="#8B5CF6"></div>
+                        <div onclick="setAccent('#EC4899')" class="theme-swatch" style="background-color: #EC4899;" data-accent="#EC4899"></div>
+                    </div>
+                </div>
+
+                <!-- 3. FONT SIZE -->
+                <div>
+                    <label class="block text-xs font-bold mb-2 opacity-80">РАЗМЕР ШРИФТА</label>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button onclick="setFontSize('14px')" id="btnFontSmall" class="custom-btn-secondary p-2 text-xs font-bold">МАЛЫЙ</button>
+                        <button onclick="setFontSize('16px')" id="btnFontMedium" class="custom-btn-secondary p-2 text-xs font-bold">СРЕДНИЙ</button>
+                        <button onclick="setFontSize('18px')" id="btnFontLarge" class="custom-btn-secondary p-2 text-xs font-bold">БOЛЬШОЙ</button>
+                    </div>
+                </div>
+
+                <!-- 4. CORNER ROUNDING -->
+                <div>
+                    <label class="block text-xs font-bold mb-2 opacity-80">СКРУГЛЕНИЕ УГЛОВ</label>
+                    <div class="grid grid-cols-4 gap-2">
+                        <button onclick="setRadius('0px')" id="btnRadNone" class="custom-btn-secondary p-2 text-xs font-bold">0px</button>
+                        <button onclick="setRadius('8px')" id="btnRadSm" class="custom-btn-secondary p-2 text-xs font-bold">8px</button>
+                        <button onclick="setRadius('16px')" id="btnRadMd" class="custom-btn-secondary p-2 text-xs font-bold">16px</button>
+                        <button onclick="setRadius('24px')" id="btnRadLg" class="custom-btn-secondary p-2 text-xs font-bold">24px</button>
+                    </div>
+                </div>
+
+                <!-- 5. BACKGROUND STYLE -->
+                <div>
+                    <label class="block text-xs font-bold mb-2 opacity-80">СТИЛЬ ФОНА</label>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button onclick="setBgStyle('bg-grid')" id="btnBgGrid" class="custom-btn-secondary p-2 text-xs font-bold">СЕТКА</button>
+                        <button onclick="setBgStyle('bg-gradient')" id="btnBgGrad" class="custom-btn-secondary p-2 text-xs font-bold">ГРАДИЕНТ</button>
+                        <button onclick="setBgStyle('bg-solid')" id="btnBgSolid" class="custom-btn-secondary p-2 text-xs font-bold">СПЛОШНОЙ</button>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- MODAL CLOSE BUTTON -->
+            <button onclick="toggleSettingsModal(false)" class="custom-btn-primary w-full py-3 mt-6 font-black tracking-wider">
+                ГОТОВО
+            </button>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        // APP STATE CONFIGURATION
+        const appConfig = {
+            theme: 'LIGHT',
+            accent: '#2563EB',
+            fontSize: '16px',
+            radius: '12px',
+            bgStyle: 'bg-grid'
+        };
+
+        // INITIALIZATION
+        window.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('currentYear').textContent = new Date().getFullYear();
+            applyConfig();
+        });
+
+        // CALCULATE MOTOR HOURS
+        function calculateHours() {
+            const daysInput = document.getElementById('inputDays').value;
+            const hoursInput = document.getElementById('inputHours').value;
+            const minutesInput = document.getElementById('inputMinutes').value;
+
+            const days = parseInt(daysInput) || 0;
+            const hours = parseInt(hoursInput) || 0;
+            const minutes = parseInt(minutesInput) || 0;
+
+            const errorBox = document.getElementById('errorMessage');
+            const resultsBox = document.getElementById('resultsSection');
+
+            // VALIDATION
+            if (days < 0 || hours < 0 || minutes < 0 || hours > 24 || minutes >= 60 || (days === 0 && hours === 0 && minutes === 0)) {
+                errorBox.classList.remove('hidden');
+                resultsBox.classList.add('hidden');
+                return;
+            }
+
+            errorBox.classList.add('hidden');
+
+            // COMPUTATION
+            const dailyTotalMinutes = (hours * 60) + minutes;
+            const grandTotalMinutes = dailyTotalMinutes * days;
+
+            const totalHours = Math.floor(grandTotalMinutes / 60);
+            const remainingMinutes = grandTotalMinutes % 60;
+
+            const decimalHours = (grandTotalMinutes / 60).toFixed(2);
+
+            const equivDays = Math.floor(totalHours / 24);
+            const equivHours = totalHours % 24;
+
+            // DISPLAY RESULTS IN UPPERCASE FORMAT
+            document.getElementById('resTotalHM').textContent = `${totalHours} Ч ${remainingMinutes} МИН`;
+            document.getElementById('resDecimal').textContent = decimalHours;
+            document.getElementById('resContinuous').textContent = `${equivDays} ДНЕЙ ${equivHours} ЧАСОВ ${remainingMinutes} МИНУТ`;
+
+            resultsBox.classList.remove('hidden');
+        }
+
+        // RESET FORM FUNCTION
+        function resetForm() {
+            document.getElementById('inputDays').value = '';
+            document.getElementById('inputHours').value = '';
+            document.getElementById('inputMinutes').value = '';
+            document.getElementById('errorMessage').classList.add('hidden');
+            document.getElementById('resultsSection').classList.add('hidden');
+        }
+
+        // TOGGLE SETTINGS MODAL
+        function toggleSettingsModal(show) {
+            const modal = document.getElementById('settingsModal');
+            const card = document.getElementById('modalCard');
+
+            if (show) {
+                modal.classList.remove('hidden');
+                setTimeout(() => {
+                    modal.classList.remove('opacity-0');
+                    card.classList.remove('scale-95');
+                }, 10);
+            } else {
+                modal.classList.add('opacity-0');
+                card.classList.add('scale-95');
+                setTimeout(() => {
+                    modal.classList.add('hidden');
+                }, 200);
+            }
+        }
+
+        // CUSTOMIZATION SETTERS
+        function setTheme(theme) {
+            appConfig.theme = theme;
+            applyConfig();
+        }
+
+        function setAccent(color) {
+            appConfig.accent = color;
+            applyConfig();
+        }
+
+        function setFontSize(size) {
+            appConfig.fontSize = size;
+            applyConfig();
+        }
+
+        function setRadius(rad) {
+            appConfig.radius = rad;
+            applyConfig();
+        }
+
+        function setBgStyle(style) {
+            appConfig.bgStyle = style;
+            applyConfig();
+        }
+
+        // APPLY CONFIGURATION TO DOM
+        function applyConfig() {
+            // THEME
+            document.documentElement.setAttribute('data-theme', appConfig.theme);
+
+            // ACCENT COLOR
+            document.documentElement.style.setProperty('--ACCENT-COLOR', appConfig.accent);
+            
+            // FONT SIZE
+            document.documentElement.style.setProperty('--FONT-SIZE', appConfig.fontSize);
+
+            // BORDER RADIUS
+            document.documentElement.style.setProperty('--BORDER-RADIUS', appConfig.radius);
+
+            // BACKGROUND CLASS
+            document.body.className = `min-h-screen flex flex-col justify-between p-4 sm:p-6 ${appConfig.bgStyle}`;
+
+            // UPDATE UI HIGHLIGHTS IN SETTINGS
+            updateSettingsUI();
+        }
+
+        // HIGHLIGHT SELECTED SETTINGS
+        function updateSettingsUI() {
+            // ACCENT SWATCHES
+            document.querySelectorAll('.theme-swatch').forEach(el => {
+                if (el.getAttribute('data-accent') === appConfig.accent) {
+                    el.classList.add('active');
+                } else {
+                    el.classList.remove('active');
+                }
+            });
+        }
+    </script>
+</body>
+</html>
