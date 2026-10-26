@@ -76,6 +76,27 @@
             padding: 5px;
         }
 
+        /* УВЕДОМЛЕНИЕ О СРОКЕ ТО (ПЕРЕД РЕЗУЛЬТАТАМИ) */
+        .alert-banner {
+            margin-bottom: 15px;
+            padding: 12px;
+            border-radius: var(--border-radius);
+            font-weight: bold;
+            font-size: 0.9em;
+            text-align: center;
+            display: none;
+        }
+        .alert-warning {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeeba;
+        }
+        .alert-danger {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
         .mode-selector {
             display: flex;
             gap: 10px;
@@ -135,25 +156,8 @@
             margin-top: 10px;
         }
 
-        .calc-btn {
-            flex: 2;
-            padding: 12px;
-            background-color: var(--accent-color);
-            color: white;
-            border: none;
-            border-radius: var(--border-radius);
-            font-size: 1em;
-            font-weight: bold;
-            cursor: pointer;
-            text-transform: uppercase;
-        }
-
-        .calc-btn:hover {
-            background-color: var(--accent-hover);
-        }
-
         .reset-btn {
-            flex: 1;
+            width: 100%;
             padding: 12px;
             background-color: var(--reset-color);
             color: white;
@@ -264,6 +268,9 @@
             <button class="settings-btn" onclick="openSettings()">⚙️</button>
         </div>
 
+        <!-- БЛОК ПРЕДУПРЕЖДЕНИЯ ДЛЯ АНДРОИДА И ЭКРАНА -->
+        <div id="alertBanner" class="alert-banner"></div>
+
         <div class="mode-selector">
             <button class="mode-btn active" id="btnModeDays" onclick="setMode('days')">ПО ДНЯМ</button>
             <button class="mode-btn" id="btnModeDate" onclick="setMode('date')">ПО ДАТЕ ТО</button>
@@ -273,7 +280,7 @@
         <div id="sectionDays">
             <div class="input-group">
                 <label for="days">КОЛИЧЕСТВО ДНЕЙ РАБОТЫ:</label>
-                <input type="number" id="days" placeholder="НАПР. 5" min="0">
+                <input type="number" id="days" placeholder="НАПР. 5" min="0" oninput="autoCalculate()">
             </div>
         </div>
 
@@ -281,25 +288,24 @@
         <div id="sectionDate" style="display: none;">
             <div class="input-group">
                 <label for="lastDate">ДАТА ПОСЛЕДНЕГО ТО:</label>
-                <input type="date" id="lastDate">
+                <input type="date" id="lastDate" onchange="autoCalculate()">
             </div>
         </div>
 
         <div class="input-group">
             <label>ВРЕМЯ РАБОТЫ В ДЕНЬ:</label>
             <div class="time-inputs">
-                <input type="number" id="hours" placeholder="ЧАСОВ (0-24)" min="0" max="24">
-                <input type="number" id="minutes" placeholder="МИНУТ (0-59)" min="0" max="59">
+                <input type="number" id="hours" placeholder="ЧАСОВ (0-24)" min="0" max="24" oninput="autoCalculate()">
+                <input type="number" id="minutes" placeholder="МИНУТ (0-59)" min="0" max="59" oninput="autoCalculate()">
             </div>
         </div>
 
         <div class="input-group">
             <label for="targetHours">КОЛ-ВО М/Ч ДО СЛЕД. ТО:</label>
-            <input type="number" id="targetHours" placeholder="50" min="1" value="50">
+            <input type="number" id="targetHours" placeholder="50" min="1" value="50" oninput="autoCalculate()">
         </div>
 
         <div class="action-btns">
-            <button class="calc-btn" onclick="calculate()">РАССЧИТАТЬ</button>
             <button class="reset-btn" onclick="clearData()">ОЧИСТИТЬ</button>
         </div>
 
@@ -313,7 +319,7 @@
             <div class="result-item" id="nextServiceDate"></div>
         </div>
 
-        <!-- ОБЪЕМНЫЙ 3D ВОДЯНОЙ ЗНАК В ПРЯМОУГОЛЬНИКЕ -->
+        <!-- 3D ВОДЯНОЙ ЗНАК В ПРЯМОУГОЛЬНИКЕ -->
         <div class="watermark-3d">БЛiК</div>
     </div>
 
@@ -352,7 +358,7 @@
                 </select>
             </div>
 
-            <button class="calc-btn" style="width: 100%;" onclick="closeSettings()">СОХРАНИТЬ И ЗАКРЫТЬ</button>
+            <button class="reset-btn" style="background-color: var(--accent-color);" onclick="closeSettings()">СОХРАНИТЬ И ЗАКРЫТЬ</button>
         </div>
     </div>
 
@@ -362,6 +368,7 @@
         window.onload = function() {
             loadSavedData();
             applySettings();
+            autoCalculate();
         };
 
         function setMode(mode) {
@@ -370,6 +377,7 @@
             document.getElementById('btnModeDate').classList.toggle('active', mode === 'date');
             document.getElementById('sectionDays').style.display = mode === 'days' ? 'block' : 'none';
             document.getElementById('sectionDate').style.display = mode === 'date' ? 'block' : 'none';
+            autoCalculate();
         }
 
         function formatDate(dateObj) {
@@ -379,7 +387,7 @@
             return `${day}.${month}.${year}`;
         }
 
-        function calculate() {
+        function autoCalculate() {
             let totalDays = 0;
             let startDate = null;
 
@@ -387,19 +395,13 @@
             const minutes = parseInt(document.getElementById('minutes').value) || 0;
             const targetHours = parseFloat(document.getElementById('targetHours').value) || 50;
 
-            if (hours > 24 || minutes >= 60) {
-                alert("НЕКОРРЕКТНОЕ ВРЕМЯ!");
-                return;
-            }
-
-            if (targetHours <= 0) {
-                alert("УКАЖИТЕ КОРРЕКТНОЕ КОЛИЧЕСТВО МОТОЧАСОВ ДО ТО!");
-                return;
-            }
-
             const dailyMinutes = (hours * 60) + minutes;
-            if (dailyMinutes === 0) {
-                alert("УКАЖИТЕ ВРЕМЯ РАБОТЫ В ДЕНЬ!");
+            const banner = document.getElementById('alertBanner');
+
+            if (dailyMinutes === 0 || hours > 24 || minutes >= 60 || targetHours <= 0) {
+                document.getElementById('result').style.display = 'none';
+                banner.style.display = 'none';
+                saveData();
                 return;
             }
 
@@ -410,7 +412,9 @@
             } else {
                 const dateVal = document.getElementById('lastDate').value;
                 if (!dateVal) {
-                    alert("ВЫБЕРИТЕ ДАТУ ПОСЛЕДНЕГО ТО!");
+                    document.getElementById('result').style.display = 'none';
+                    banner.style.display = 'none';
+                    saveData();
                     return;
                 }
                 startDate = new Date(dateVal);
@@ -423,13 +427,14 @@
                 totalDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
                 if (totalDays < 0) {
-                    alert("ДАТА ТО НЕ МОЖЕТ БЫТЬ В БУДУЩЕМ!");
+                    document.getElementById('result').style.display = 'none';
+                    banner.style.display = 'none';
+                    saveData();
                     return;
                 }
             }
 
             const totalMinutes = dailyMinutes * totalDays;
-
             const resHours = Math.floor(totalMinutes / 60);
             const resMinutes = totalMinutes % 60;
             const decimalHours = (totalMinutes / 60).toFixed(2);
@@ -442,6 +447,35 @@
 
             const nextServiceDateObj = new Date(startDate);
             nextServiceDateObj.setDate(nextServiceDateObj.getDate() + daysNeededForTarget);
+
+            // РАСЧЁТ ОСТАТКА ДНЕЙ ДО СЛЕДУЮЩЕГО ТО
+            const todayTime = new Date();
+            todayTime.setHours(0, 0, 0, 0);
+            nextServiceDateObj.setHours(0, 0, 0, 0);
+            
+            const diffTimeRemaining = nextServiceDateObj - todayTime;
+            const daysRemaining = Math.round(diffTimeRemaining / (1000 * 60 * 60 * 24));
+
+            // ЛОГИКА ПРЕДУПРЕЖДЕНИЙ ЗА 2 И 1 ДЕНЬ
+            if (daysRemaining < 0) {
+                banner.className = "alert-banner alert-danger";
+                banner.innerHTML = `⚠️ ВНИМАНИЕ! СРОК ТО ПРОШЕЛ ПРОШЛО СВЫШЕ ${targetHours} М/Ч!`;
+                banner.style.display = "block";
+            } else if (daysRemaining === 0) {
+                banner.className = "alert-banner alert-danger";
+                banner.innerHTML = `🚨 ВНИМАНИЕ! СЕГОДНЯ СРОК ПРОВЕДЕНИЯ ТО!`;
+                banner.style.display = "block";
+            } else if (daysRemaining === 1) {
+                banner.className = "alert-banner alert-warning";
+                banner.innerHTML = `⚠️ ПРЕДУПРЕЖДЕНИЕ: ДО СЛЕДУЮЩЕГО ТО ОСТАЛСЯ 1 ДЕНЬ!`;
+                banner.style.display = "block";
+            } else if (daysRemaining === 2) {
+                banner.className = "alert-banner alert-warning";
+                banner.innerHTML = `⚠️ ПРЕДУПРЕЖДЕНИЕ: ДО СЛЕДУЮЩЕГО ТО ОСТАЛОСЬ 2 ДНЯ!`;
+                banner.style.display = "block";
+            } else {
+                banner.style.display = "none";
+            }
 
             document.getElementById('lastServiceDisplay').innerHTML = 
                 `ДАТА ПОСЛЕДНЕГО ТО: <span class="highlight">${formatDate(startDate)}</span>`;
@@ -477,7 +511,9 @@
             document.getElementById('minutes').value = '';
             document.getElementById('targetHours').value = '50';
             document.getElementById('result').style.display = 'none';
+            document.getElementById('alertBanner').style.display = 'none';
 
+            localStorage.removeItem('generator_data');
             saveData();
         }
 
@@ -506,8 +542,6 @@
                 document.documentElement.style.setProperty('--result-bg', '#3a3a3a');
                 document.documentElement.style.setProperty('--accent-color', '#ff9800');
                 document.documentElement.style.setProperty('--accent-hover', '#e68a00');
-
-                // 3D Водяной знак для тёмной темы
                 document.documentElement.style.setProperty('--wm-bg', 'linear-gradient(135deg, #3d3d3d 0%, #1a1a1a 100%)');
                 document.documentElement.style.setProperty('--wm-text', '#ff9800');
                 document.documentElement.style.setProperty('--wm-shadow', '0 4px 8px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1)');
@@ -520,14 +554,11 @@
                 document.documentElement.style.setProperty('--result-bg', '#bbdefb');
                 document.documentElement.style.setProperty('--accent-color', '#1976d2');
                 document.documentElement.style.setProperty('--accent-hover', '#1565c0');
-
-                // 3D Водяной знак для синей темы
                 document.documentElement.style.setProperty('--wm-bg', 'linear-gradient(135deg, #ffffff 0%, #bbdefb 100%)');
                 document.documentElement.style.setProperty('--wm-text', '#1565c0');
                 document.documentElement.style.setProperty('--wm-shadow', '0 4px 8px rgba(25, 118, 210, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.9)');
                 document.documentElement.style.setProperty('--wm-border', 'rgba(25, 118, 210, 0.2)');
             } else {
-                // Светлая тема
                 document.documentElement.style.setProperty('--bg-color', '#f4f7f6');
                 document.documentElement.style.setProperty('--card-bg', '#ffffff');
                 document.documentElement.style.setProperty('--text-color', '#222222');
@@ -535,8 +566,6 @@
                 document.documentElement.style.setProperty('--result-bg', '#e9ecef');
                 document.documentElement.style.setProperty('--accent-color', '#007bff');
                 document.documentElement.style.setProperty('--accent-hover', '#0056b3');
-
-                // 3D Водяной знак для светлой темы
                 document.documentElement.style.setProperty('--wm-bg', 'linear-gradient(135deg, #ffffff 0%, #e6e6e6 100%)');
                 document.documentElement.style.setProperty('--wm-text', '#555555');
                 document.documentElement.style.setProperty('--wm-shadow', '0 4px 8px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.8)');
@@ -546,6 +575,7 @@
 
         function saveData() {
             const data = {
+                mode: currentMode,
                 days: document.getElementById('days').value,
                 lastDate: document.getElementById('lastDate').value,
                 hours: document.getElementById('hours').value,
@@ -559,9 +589,10 @@
         }
 
         function loadSavedData() {
-            const saved = localStorage.getItem('generator_data');
-            if (saved) {
-                const data = JSON.parse(saved);
+            const savedData = localStorage.getItem('generator_data');
+            if (savedData) {
+                const data = JSON.parse(savedData);
+                if (data.mode) setMode(data.mode);
                 if (data.days) document.getElementById('days').value = data.days;
                 if (data.lastDate) document.getElementById('lastDate').value = data.lastDate;
                 if (data.hours) document.getElementById('hours').value = data.hours;
