@@ -15,8 +15,16 @@
             --reset-hover: #bd2130;
             --border-color: #cccccc;
             --result-bg: #e9ecef;
+            --wm-bg: linear-gradient(135deg, #ffffff 0%, #e6e6e6 100%);
+            --wm-text: #555555;
+            --wm-shadow: 0 4px 8px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+            --wm-border: rgba(0, 0, 0, 0.1);
             --border-radius: 12px;
             --font-size: 16px;
+        }
+
+        * {
+            box-sizing: border-box;
         }
 
         body {
@@ -29,14 +37,15 @@
             min-height: 100vh;
             margin: 0;
             padding: 20px;
-            box-sizing: border-box;
             font-size: var(--font-size);
             text-transform: uppercase;
+            position: relative;
         }
 
         .container {
             background-color: var(--card-bg);
             padding: 25px;
+            padding-bottom: 45px;
             border-radius: var(--border-radius);
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
             width: 100%;
@@ -185,7 +194,31 @@
             color: var(--accent-color);
         }
 
-        /* МОДАЛЬНОЕ ОКНО НАСТРОЕК */
+        .highlight-alert {
+            font-weight: bold;
+            color: #d9534f;
+        }
+
+        /* 3D ВОДЯНОЙ ЗНАК В ПРЯМОУГОЛЬНИКЕ */
+        .watermark-3d {
+            position: absolute;
+            bottom: 10px;
+            left: 15px;
+            padding: 4px 10px;
+            font-size: 0.7em;
+            font-weight: 900;
+            letter-spacing: 1.5px;
+            background: var(--wm-bg);
+            color: var(--wm-text);
+            border: 1px solid var(--wm-border);
+            border-radius: 6px;
+            box-shadow: var(--wm-shadow);
+            text-shadow: 0 1px 0 rgba(255, 255, 255, 0.8);
+            user-select: none;
+            pointer-events: none;
+            display: inline-block;
+        }
+
         .modal {
             display: none;
             position: fixed;
@@ -247,7 +280,7 @@
         <!-- РЕЖИМ 2: ПО ДАТЕ ПОСЛЕДНЕГО ТО -->
         <div id="sectionDate" style="display: none;">
             <div class="input-group">
-                <label for="lastDate">ДАТА ПОСЛЕДНЕГО ОБСЛУЖИВАНИЯ:</label>
+                <label for="lastDate">ДАТА ПОСЛЕДНЕГО ТО:</label>
                 <input type="date" id="lastDate">
             </div>
         </div>
@@ -260,6 +293,11 @@
             </div>
         </div>
 
+        <div class="input-group">
+            <label for="targetHours">КОЛ-ВО М/Ч ДО СЛЕД. ТО:</label>
+            <input type="number" id="targetHours" placeholder="50" min="1" value="50">
+        </div>
+
         <div class="action-btns">
             <button class="calc-btn" onclick="calculate()">РАССЧИТАТЬ</button>
             <button class="reset-btn" onclick="clearData()">ОЧИСТИТЬ</button>
@@ -267,11 +305,16 @@
 
         <div class="result-box" id="result">
             <h3>РЕЗУЛЬТАТ:</h3>
+            <div class="result-item" id="lastServiceDisplay"></div>
             <div class="result-item" id="daysPassed"></div>
             <div class="result-item" id="totalTime"></div>
             <div class="result-item" id="totalDecimal"></div>
             <div class="result-item" id="equivalentDays"></div>
+            <div class="result-item" id="nextServiceDate"></div>
         </div>
+
+        <!-- ОБЪЕМНЫЙ 3D ВОДЯНОЙ ЗНАК В ПРЯМОУГОЛЬНИКЕ -->
+        <div class="watermark-3d">БЛiК</div>
     </div>
 
     <!-- ОКНО НАСТРОЕК ВНЕШНЕГО ВИДА -->
@@ -316,7 +359,6 @@
     <script>
         let currentMode = 'days';
 
-        // ЗАГРУЗКА ДАННЫХ ПРИ СТАРТЕ
         window.onload = function() {
             loadSavedData();
             applySettings();
@@ -330,32 +372,54 @@
             document.getElementById('sectionDate').style.display = mode === 'date' ? 'block' : 'none';
         }
 
+        function formatDate(dateObj) {
+            const day = String(dateObj.getDate()).padStart(2, '0');
+            const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+            const year = dateObj.getFullYear();
+            return `${day}.${month}.${year}`;
+        }
+
         function calculate() {
             let totalDays = 0;
+            let startDate = null;
+
             const hours = parseInt(document.getElementById('hours').value) || 0;
             const minutes = parseInt(document.getElementById('minutes').value) || 0;
+            const targetHours = parseFloat(document.getElementById('targetHours').value) || 50;
 
             if (hours > 24 || minutes >= 60) {
                 alert("НЕКОРРЕКТНОЕ ВРЕМЯ!");
                 return;
             }
 
+            if (targetHours <= 0) {
+                alert("УКАЖИТЕ КОРРЕКТНОЕ КОЛИЧЕСТВО МОТОЧАСОВ ДО ТО!");
+                return;
+            }
+
+            const dailyMinutes = (hours * 60) + minutes;
+            if (dailyMinutes === 0) {
+                alert("УКАЖИТЕ ВРЕМЯ РАБОТЫ В ДЕНЬ!");
+                return;
+            }
+
             if (currentMode === 'days') {
                 totalDays = parseInt(document.getElementById('days').value) || 0;
+                startDate = new Date();
+                startDate.setDate(startDate.getDate() - totalDays);
             } else {
                 const dateVal = document.getElementById('lastDate').value;
                 if (!dateVal) {
                     alert("ВЫБЕРИТЕ ДАТУ ПОСЛЕДНЕГО ТО!");
                     return;
                 }
-                const lastDate = new Date(dateVal);
+                startDate = new Date(dateVal);
                 const today = new Date();
                 
-                // Обнуляем время для точного подсчета дней
-                lastDate.setHours(0, 0, 0, 0);
+                startDate.setHours(0, 0, 0, 0);
                 today.setHours(0, 0, 0, 0);
 
-                const diffTime = today - lastDate;
+                const diffTime = today - startDate;
                 totalDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
                 if (totalDays < 0) {
@@ -364,8 +428,6 @@
                 }
             }
 
-            // РАСЧЁТ ВРЕМЕНИ
-            const dailyMinutes = (hours * 60) + minutes;
             const totalMinutes = dailyMinutes * totalDays;
 
             const resHours = Math.floor(totalMinutes / 60);
@@ -375,7 +437,15 @@
             const continuousDays = Math.floor(resHours / 24);
             const remainingHours = resHours % 24;
 
-            // ВЫВОД РЕЗУЛЬТАТОВ
+            const dailyHours = dailyMinutes / 60;
+            const daysNeededForTarget = Math.ceil(targetHours / dailyHours);
+
+            const nextServiceDateObj = new Date(startDate);
+            nextServiceDateObj.setDate(nextServiceDateObj.getDate() + daysNeededForTarget);
+
+            document.getElementById('lastServiceDisplay').innerHTML = 
+                `ДАТА ПОСЛЕДНЕГО ТО: <span class="highlight">${formatDate(startDate)}</span>`;
+
             document.getElementById('daysPassed').innerHTML = 
                 `ПРОШЛО ДНЕЙ: <span class="highlight">${totalDays} ДН.</span>`;
 
@@ -388,24 +458,29 @@
             document.getElementById('equivalentDays').innerHTML = 
                 `НЕПРЕРЫВНАЯ РАБОТА: <span class="highlight">${continuousDays} ДН. ${remainingHours} Ч ${resMinutes} МИН</span>`;
 
+            const isOverdue = resHours >= targetHours;
+            const nextServiceClass = isOverdue ? 'highlight-alert' : 'highlight';
+            const statusText = isOverdue ? ' (ТРЕБУЕТСЯ ТО!)' : '';
+
+            document.getElementById('nextServiceDate').innerHTML = 
+                `СЛЕДУЮЩЕЕ ТО (${targetHours} Ч): <span class="${nextServiceClass}">${formatDate(nextServiceDateObj)}${statusText}</span>`;
+
             document.getElementById('result').style.display = 'block';
 
             saveData();
         }
 
-        // ОЧИСТКА ВВЕДЁННЫХ ДАННЫХ
         function clearData() {
             document.getElementById('days').value = '';
             document.getElementById('lastDate').value = '';
             document.getElementById('hours').value = '';
             document.getElementById('minutes').value = '';
+            document.getElementById('targetHours').value = '50';
             document.getElementById('result').style.display = 'none';
 
-            // Сохраняем очищенные поля, но оставляем настройки внешнего вида
             saveData();
         }
 
-        // НАСТРОЙКИ И СОХРАНЕНИЕ
         function openSettings() {
             document.getElementById('settingsModal').style.display = 'flex';
         }
@@ -431,6 +506,12 @@
                 document.documentElement.style.setProperty('--result-bg', '#3a3a3a');
                 document.documentElement.style.setProperty('--accent-color', '#ff9800');
                 document.documentElement.style.setProperty('--accent-hover', '#e68a00');
+
+                // 3D Водяной знак для тёмной темы
+                document.documentElement.style.setProperty('--wm-bg', 'linear-gradient(135deg, #3d3d3d 0%, #1a1a1a 100%)');
+                document.documentElement.style.setProperty('--wm-text', '#ff9800');
+                document.documentElement.style.setProperty('--wm-shadow', '0 4px 8px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1)');
+                document.documentElement.style.setProperty('--wm-border', 'rgba(255, 255, 255, 0.1)');
             } else if (theme === 'blue') {
                 document.documentElement.style.setProperty('--bg-color', '#e3f2fd');
                 document.documentElement.style.setProperty('--card-bg', '#ffffff');
@@ -439,6 +520,12 @@
                 document.documentElement.style.setProperty('--result-bg', '#bbdefb');
                 document.documentElement.style.setProperty('--accent-color', '#1976d2');
                 document.documentElement.style.setProperty('--accent-hover', '#1565c0');
+
+                // 3D Водяной знак для синей темы
+                document.documentElement.style.setProperty('--wm-bg', 'linear-gradient(135deg, #ffffff 0%, #bbdefb 100%)');
+                document.documentElement.style.setProperty('--wm-text', '#1565c0');
+                document.documentElement.style.setProperty('--wm-shadow', '0 4px 8px rgba(25, 118, 210, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.9)');
+                document.documentElement.style.setProperty('--wm-border', 'rgba(25, 118, 210, 0.2)');
             } else {
                 // Светлая тема
                 document.documentElement.style.setProperty('--bg-color', '#f4f7f6');
@@ -448,6 +535,12 @@
                 document.documentElement.style.setProperty('--result-bg', '#e9ecef');
                 document.documentElement.style.setProperty('--accent-color', '#007bff');
                 document.documentElement.style.setProperty('--accent-hover', '#0056b3');
+
+                // 3D Водяной знак для светлой темы
+                document.documentElement.style.setProperty('--wm-bg', 'linear-gradient(135deg, #ffffff 0%, #e6e6e6 100%)');
+                document.documentElement.style.setProperty('--wm-text', '#555555');
+                document.documentElement.style.setProperty('--wm-shadow', '0 4px 8px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.8)');
+                document.documentElement.style.setProperty('--wm-border', 'rgba(0, 0, 0, 0.1)');
             }
         }
 
@@ -457,6 +550,7 @@
                 lastDate: document.getElementById('lastDate').value,
                 hours: document.getElementById('hours').value,
                 minutes: document.getElementById('minutes').value,
+                targetHours: document.getElementById('targetHours').value,
                 theme: document.getElementById('themeSelect').value,
                 fontSize: document.getElementById('fontSizeSelect').value,
                 radius: document.getElementById('radiusSelect').value
@@ -472,6 +566,7 @@
                 if (data.lastDate) document.getElementById('lastDate').value = data.lastDate;
                 if (data.hours) document.getElementById('hours').value = data.hours;
                 if (data.minutes) document.getElementById('minutes').value = data.minutes;
+                if (data.targetHours) document.getElementById('targetHours').value = data.targetHours;
                 if (data.theme) document.getElementById('themeSelect').value = data.theme;
                 if (data.fontSize) document.getElementById('fontSizeSelect').value = data.fontSize;
                 if (data.radius) document.getElementById('radiusSelect').value = data.radius;
